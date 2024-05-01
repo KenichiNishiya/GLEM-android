@@ -1,6 +1,7 @@
 package com.example.glem
 
 import android.content.ContentValues.TAG
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.util.Log
@@ -30,35 +31,39 @@ class MainActivity : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
+        // Inicializando elementos View
         val marca = findViewById<EditText>(R.id.inputMarca)
         val modelo = findViewById<EditText>(R.id.inputModelo)
         val ano = findViewById<EditText>(R.id.inputAno)
 
+        val imageView = findViewById<ImageView>(R.id.imageView)
+
+        // Criando a conexao com o bd do Firebase
         val storage = Firebase.storage("gs://glem-android.appspot.com")
         var storageRef = storage.reference
-        var imageRef = storageRef.child("images/taipei.jpg")
+        var imageRef = storageRef.child("images/AE86.jpg")
         val localFile = File.createTempFile("tempImage", "jpg")
-
-        val imageView = findViewById<ImageView>(R.id.imageView)
 
         imageRef.getFile(localFile)
             .addOnSuccessListener {
-                // Image downloaded successfully, set it to the ImageView
+                // Se conseguir baixar a imagem, transforma em bitmap, dimensiona e seta na view
                 val bitmap = BitmapFactory.decodeFile(localFile.absolutePath)
-                imageView.setImageBitmap(bitmap)
+                val scaledBitmap = Bitmap.createScaledBitmap(bitmap, 700, 500, true)
+                imageView.setImageBitmap(scaledBitmap)
             }
             .addOnFailureListener {
-                // Handle any errors
-                //Toast.makeText(context, "Failed to load image", Toast.LENGTH_SHORT).show()
+                // Executa se acontecer algum erro
+                Toast.makeText(applicationContext, "Erro ao carregar imagem", Toast.LENGTH_SHORT).show()
             }
 
         val add_button: Button = findViewById(R.id.button_add)
         add_button.setOnClickListener {
+            // Pega o input do user
             var marcaText = marca.text.toString()
             var modeloText = modelo.text.toString()
             var anoText = ano.text.toString()
-//            val toast = Toast.makeText(applicationContext, "$marcaText, $modeloText, $anoText", Toast.LENGTH_LONG)
-//            toast.show()
+
+            // Insere no bd se os campos estiverem preenchidos
             if(marcaText != "" && modeloText != "" && anoText != "") {
                 addDataToFirestore(marcaText, modeloText, anoText)
 
@@ -75,57 +80,48 @@ class MainActivity : AppCompatActivity() {
         show_button.setOnClickListener {
             retrieveDataFromFirestore()
         }
-
     }
 
-    // Inside your activity or fragment class
     fun addDataToFirestore(marca: String, modelo: String, ano: String) {
 
-        // Get a reference to your Firestore database
+        // Cria uma referencia ao Firestore
         val db = FirebaseFirestore.getInstance()
 
-
-        // Create a new document in the "carros" collection
+        // Cria um novo documento na collection de carros
         val carrosCollection = db.collection("carros")
         val newCarDoc = carrosCollection.document()
 
-        // Add data to the document
+        // Adiciona dados no documento
         val data = hashMapOf(
             "marca" to marca,
             "modelo" to modelo,
             "ano" to ano
         )
 
-
-//         Set data to the document
          newCarDoc.set(data)
              .addOnSuccessListener {
-                 // Data added successfully
-                 Log.d(TAG, "Data added successfully")
+                 Toast.makeText(applicationContext, "Inserido com sucesso", Toast.LENGTH_SHORT).show()
              }
              .addOnFailureListener { e ->
-                 // Failed to add data
-                 Log.w(TAG, "Error adding document", e)
+                 Toast.makeText(applicationContext, "Erro ao inserir o documento", Toast.LENGTH_SHORT).show()
              }
     }
 
     fun retrieveDataFromFirestore() {
         var text_show: TextView = findViewById(R.id.show_text)
-// Get a reference to your Firestore database
-        val db = FirebaseFirestore.getInstance()
 
-// Reference to your "carros" collection
+        // Cria uma referecia ao Firestore > collection carros
+        val db = FirebaseFirestore.getInstance()
         val carrosCollection = db.collection("carros")
 
-// Retrieve data from the "carros" collection
+        // Faz um get para pegar todos os dados da collection
         carrosCollection.get()
             .addOnSuccessListener { result ->
-                // Initialize a string to store retrieved data
+                // Cria uma string pra colocar todos os itens
                 val dataStringBuilder = StringBuilder()
 
-                // Iterate through each document in the result
+                // Loop para iterar cada elemento da collection
                 for (document in result) {
-                    // Get document data and append it to the string
                     val marca = document.getString("marca")
                     val modelo = document.getString("modelo")
                     val ano = document.getString("ano")
@@ -133,13 +129,12 @@ class MainActivity : AppCompatActivity() {
                     dataStringBuilder.append("Marca: $marca, Modelo: $modelo, Ano: $ano\n")
                 }
 
-                // Once all data is retrieved, update the TextView
+                // Atualiza a textview
                 val allData = dataStringBuilder.toString()
                 text_show.text = allData
             }
             .addOnFailureListener { exception ->
-                // Handle any errors
-                Log.w(TAG, "Error getting documents.", exception)
+                Toast.makeText(applicationContext, "Erro ao carregar dados", Toast.LENGTH_SHORT).show()
             }
     }
 }
