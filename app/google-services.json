@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1062884805516",
+    "project_id": "glem-android",
+    "storage_bucket": "glem-android.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1062884805516:android:952a9b2d8f024eb581e4a9",
+        "android_client_info": {
+          "package_name": "com.example.glem"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyABkHIwCpKjYK_CGuoWD4xjW2bn0kXDtEw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
