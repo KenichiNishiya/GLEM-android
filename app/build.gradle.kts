@@ -64,4 +64,6 @@ dependencies {
     // https://firebase.google.com/docs/android/setup#available-libraries
     implementation("com.github.bumptech.glide:glide:4.12.0")
     kapt("com.github.bumptech.glide:compiler:4.12.0")
+
+    implementation("androidx.appcompat:appcompat:1.3.0")
 }
