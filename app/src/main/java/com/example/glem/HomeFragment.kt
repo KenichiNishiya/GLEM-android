@@ -58,7 +58,7 @@ class HomeFragment : Fragment() {
         val ano = rootView.findViewById<EditText>(R.id.inputAno)
         val imageView = rootView.findViewById<ImageView>(R.id.imageView)
 
-        var text_show = rootView.findViewById<TextView>(R.id.show_text)
+        text_show = rootView.findViewById<TextView>(R.id.show_text)
 
         // Criando a conexao com o bd do Firebase
         val storage = Firebase.storage("gs://glem-android.appspot.com")

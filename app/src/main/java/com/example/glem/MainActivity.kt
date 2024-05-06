@@ -36,7 +36,6 @@ class MainActivity : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
-
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
     }
@@ -60,8 +59,6 @@ class MainActivity : AppCompatActivity() {
 
             // Commit the transaction
             fragmentTransaction.commit()
-
-
             true
         }
         R.id.func2 -> {
