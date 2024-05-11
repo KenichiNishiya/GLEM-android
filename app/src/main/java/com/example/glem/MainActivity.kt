@@ -1,5 +1,7 @@
 package com.example.glem
 
+import CustomAdapter
+import ListItem
 import android.content.ContentValues.TAG
 import android.content.Intent
 import android.graphics.Bitmap
@@ -11,6 +13,7 @@ import android.view.MenuItem
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
+import android.widget.ListView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
@@ -40,6 +43,28 @@ open class MainActivity : AppCompatActivity() {
         }
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
+
+
+        val listView = findViewById<ListView>(R.id.listView)
+
+        val items = listOf(
+            ListItem(R.drawable.ic_launcher_background, "1", "One"),
+            ListItem(R.drawable.ic_launcher_background, "2", "Two")
+            // Add more items...
+        )
+
+        val adapter = CustomAdapter(this, items)
+        listView.adapter = adapter
+
+        // Setting up the item click listener
+        listView.setOnItemClickListener { parent, view, position, id ->
+            val item = adapter.getItem(position)
+            Toast.makeText(
+                this,
+                "Clicked: ${item?.numberInDigit} - ${item?.numbersInText}",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
