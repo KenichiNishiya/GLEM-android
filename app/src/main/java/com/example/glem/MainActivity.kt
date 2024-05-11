@@ -1,6 +1,7 @@
 package com.example.glem
 
 import android.content.ContentValues.TAG
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Bundle
@@ -26,7 +27,7 @@ import com.google.firebase.storage.StorageReference
 import com.google.firebase.storage.ktx.storage
 import java.io.File
 
-class MainActivity : AppCompatActivity() {
+open class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -35,47 +36,26 @@ class MainActivity : AppCompatActivity() {
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
+
         }
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
     }
+
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.menu, menu)
         return true
     }
+
     override fun onOptionsItemSelected(item: MenuItem) = when (item.itemId) {
         R.id.func1 -> {
-            val fragmentManager: FragmentManager = supportFragmentManager
-
-            // Begin a FragmentTransaction
-            val fragmentTransaction: FragmentTransaction = fragmentManager.beginTransaction()
-
-            // Replace the contents of the container with the new fragment
-            val fragment = HomeFragment()
-            fragmentTransaction.replace(R.id.fragment_container, fragment)
-
-            // Add the transaction to the back stack
-            fragmentTransaction.addToBackStack(null)
-
-            // Commit the transaction
-            fragmentTransaction.commit()
+            startActivity(Intent(this, MainActivity::class.java))
+            Toast.makeText(applicationContext, "Foi pra 1", Toast.LENGTH_LONG).show()
             true
         }
         R.id.func2 -> {
-            val fragmentManager: FragmentManager = supportFragmentManager
-
-            // Begin a FragmentTransaction
-            val fragmentTransaction: FragmentTransaction = fragmentManager.beginTransaction()
-
-            // Replace the contents of the container with the new fragment
-            val fragment = ScrollingFragment()
-            fragmentTransaction.replace(R.id.fragment_container, fragment)
-
-            // Add the transaction to the back stack
-            fragmentTransaction.addToBackStack(null)
-
-            // Commit the transaction
-            fragmentTransaction.commit()
+            Toast.makeText(this, "Foi pra 2", Toast.LENGTH_LONG).show()
+            startActivity(Intent(this, CadastrarCarros::class.java))
             true
         }
         else -> {
