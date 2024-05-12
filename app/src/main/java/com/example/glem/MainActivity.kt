@@ -31,6 +31,11 @@ import com.google.firebase.storage.ktx.storage
 import java.io.File
 
 open class MainActivity : AppCompatActivity() {
+
+    lateinit var listView: ListView
+    lateinit var adapter: CustomAdapter
+    val items = mutableListOf<ListItem>() // Initially empty
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -39,23 +44,15 @@ open class MainActivity : AppCompatActivity() {
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
-
         }
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
 
-
-        val listView = findViewById<ListView>(R.id.listView)
-
-        val items = listOf(
-            ListItem(R.drawable.ic_launcher_background, "1", "One"),
-            ListItem(R.drawable.ic_launcher_background, "2", "Two")
-            // Add more items...
-        )
-
-        val adapter = CustomAdapter(this, items)
+        listView = findViewById(R.id.listView)
+        adapter = CustomAdapter(this, items)
         listView.adapter = adapter
 
+        retrieveDataFromFirestore()
         // Setting up the item click listener
         listView.setOnItemClickListener { parent, view, position, id ->
             val item = adapter.getItem(position)
@@ -65,6 +62,27 @@ open class MainActivity : AppCompatActivity() {
                 Toast.LENGTH_SHORT
             ).show()
         }
+    }
+
+    fun retrieveDataFromFirestore() {
+        val db = FirebaseFirestore.getInstance()
+        val carrosCollection = db.collection("carros")
+
+        carrosCollection.get()
+            .addOnSuccessListener { result ->
+                items.clear() // Clear existing items
+                for (document in result) {
+                    val imageId = R.drawable.ic_launcher_background // Use default or appropriate image
+                    val marca = document.getString("marca") ?: "Unknown"
+                    val modelo = document.getString("modelo") ?: "Unknown"
+                    val ano = document.getString("ano") ?: "Unknown"
+                    items.add(ListItem(imageId, "$marca $modelo", ano))
+                }
+                adapter.notifyDataSetChanged() // Notify the adapter of the data change
+            }
+            .addOnFailureListener {
+                Toast.makeText(applicationContext, "Error loading data", Toast.LENGTH_SHORT).show()
+            }
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -87,5 +105,4 @@ open class MainActivity : AppCompatActivity() {
             super.onOptionsItemSelected(item)
         }
     }
-
 }

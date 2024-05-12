@@ -41,8 +41,6 @@ class CadastrarCarros : MainActivity() {
         val ano = findViewById<EditText>(R.id.inputAno)
         val imageView = findViewById<ImageView>(R.id.imageView)
 
-        //var text_show = findViewById<TextView>(R.id.show_text)
-
         // Criando a conexao com o bd do Firebase
         val storage = Firebase.storage("gs://glem-android.appspot.com")
         val storageRef = storage.reference
@@ -85,13 +83,6 @@ class CadastrarCarros : MainActivity() {
         show_button.setOnClickListener {
             retrieveDataFromFirestore()
         }
-
-//        val buttonFragment: Button = findViewById(R.id.button_fragment)
-//
-//        buttonFragment.setOnClickListener {
-//            // Create a FragmentManager
-//        }
-
     }
 
     fun addDataToFirestore(marca: String, modelo: String, ano: String) {
@@ -118,37 +109,4 @@ class CadastrarCarros : MainActivity() {
                 Toast.makeText(applicationContext, "Erro ao inserir o documento", Toast.LENGTH_SHORT).show()
             }
     }
-
-    fun retrieveDataFromFirestore() {
-
-        var text_show: TextView = findViewById(R.id.show_text)
-        // Cria uma referecia ao Firestore > collection carros
-        val db = FirebaseFirestore.getInstance()
-        val carrosCollection = db.collection("carros")
-
-        // Faz um get para pegar todos os dados da collection
-        carrosCollection.get()
-            .addOnSuccessListener { result ->
-                // Cria uma string pra colocar todos os itens
-                val dataStringBuilder = StringBuilder()
-
-                // Loop para iterar cada elemento da collection
-                for (document in result) {
-                    val marca = document.getString("marca")
-                    val modelo = document.getString("modelo")
-                    val ano = document.getString("ano")
-
-                    dataStringBuilder.append("Marca: $marca, Modelo: $modelo, Ano: $ano\n")
-                }
-
-                // Atualiza a textview
-                val allData = dataStringBuilder.toString()
-                text_show.text = allData
-            }
-            .addOnFailureListener { exception ->
-                Toast.makeText(applicationContext, "Erro ao carregar dados", Toast.LENGTH_SHORT).show()
-            }
-    }
-
-
 }
