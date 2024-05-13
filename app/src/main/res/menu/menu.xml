@@ -8,9 +8,9 @@
         app:showAsAction="always"/>
     <item
         android:id="@+id/func1"
-        android:title="Funcionalidade 1" />
+        android:title="Home" />
     <item
         android:id="@+id/func2"
-        android:title="Funcionalidade 2" />
+        android:title="Adicionar carros" />
 
 </menu>

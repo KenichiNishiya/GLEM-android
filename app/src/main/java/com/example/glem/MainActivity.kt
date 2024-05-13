@@ -72,11 +72,12 @@ open class MainActivity : AppCompatActivity() {
             .addOnSuccessListener { result ->
                 items.clear() // Clear existing items
                 for (document in result) {
-                    val imageId = R.drawable.ic_launcher_background // Use default or appropriate image
+                    val imageUrl = document.getString("imagem") ?: "default_image_url"
+//                    val imageId = R.drawable.ic_launcher_background // Use default or appropriate image
                     val marca = document.getString("marca") ?: "Unknown"
                     val modelo = document.getString("modelo") ?: "Unknown"
-                    val ano = document.getString("ano") ?: "Unknown"
-                    items.add(ListItem(imageId, "$marca $modelo", ano))
+                    val preco = document.getLong("preco")?.toString() ?: "Unknown"
+                    items.add(ListItem(imageUrl, "$marca $modelo", preco))
                 }
                 adapter.notifyDataSetChanged() // Notify the adapter of the data change
             }

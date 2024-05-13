@@ -9,9 +9,9 @@
 
     <ImageView
         android:id="@+id/imageView"
-        android:layout_width="84dp"
-        android:layout_height="84dp"
-        android:padding="16dp"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:padding="8dp"
         tools:ignore="ContentDescription" />
 
     <LinearLayout
@@ -27,7 +27,7 @@
             android:layout_marginTop="16dp"
             android:gravity="bottom|left"
             android:textColor="@android:color/black"
-            android:textSize="18sp"
+            android:textSize="20sp"
             android:textStyle="bold"
             tools:ignore="RtlHardcoded" />
 
@@ -38,7 +38,7 @@
             android:layout_marginBottom="16dp"
             android:gravity="top|left"
             android:textColor="@android:color/black"
-            android:textSize="14sp"
+            android:textSize="18sp"
             tools:ignore="RtlHardcoded" />
 
     </LinearLayout>

@@ -1,18 +1,13 @@
 package com.example.glem
 
-import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Bundle
-import android.view.Menu
-import android.view.MenuItem
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
-import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
-import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -39,6 +34,8 @@ class CadastrarCarros : MainActivity() {
         val marca = findViewById<EditText>(R.id.inputMarca)
         val modelo = findViewById<EditText>(R.id.inputModelo)
         val ano = findViewById<EditText>(R.id.inputAno)
+        val preco = findViewById<EditText>(R.id.inputPreco)
+        val descricao = findViewById<EditText>(R.id.inputDescricao)
         val imageView = findViewById<ImageView>(R.id.imageView)
 
         // Criando a conexao com o bd do Firebase
@@ -65,27 +62,33 @@ class CadastrarCarros : MainActivity() {
             val marcaText = marca.text.toString()
             val modeloText = modelo.text.toString()
             val anoText = ano.text.toString()
+            val precoText = preco.text.toString()
+            val descricaoText = descricao.text.toString()
 
             // Insere no bd se os campos estiverem preenchidos
-            if(marcaText.isNotBlank() && modeloText.isNotBlank() && anoText.isNotBlank()) {
-                addDataToFirestore(marcaText, modeloText, anoText)
+            if(marcaText.isNotBlank() && modeloText.isNotBlank() && anoText.isNotBlank() && precoText.isNotBlank() && descricaoText.isNotBlank()) {
+                addDataToFirestore(marcaText, modeloText, anoText, precoText, descricaoText)
 
                 marca.setText("")
                 modelo.setText("")
                 ano.setText("")
+                preco.setText("")
+                descricao.setText("")
             }
             else{
                 Toast.makeText(applicationContext, "Digite todos os dados", Toast.LENGTH_LONG).show()
             }
         }
 
-        val show_button: Button = findViewById(R.id.button_show)
-        show_button.setOnClickListener {
-            retrieveDataFromFirestore()
-        }
     }
 
-    fun addDataToFirestore(marca: String, modelo: String, ano: String) {
+    fun addDataToFirestore(
+        marca: String,
+        modelo: String,
+        ano: String,
+        precoText: String,
+        descricaoText: String
+    ) {
 
         // Cria uma referencia ao Firestore
         val db = FirebaseFirestore.getInstance()

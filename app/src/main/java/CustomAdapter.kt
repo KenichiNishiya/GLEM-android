@@ -5,6 +5,7 @@ import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.ImageView
 import android.widget.TextView
+import com.bumptech.glide.Glide
 import com.example.glem.R
 
 class CustomAdapter(
@@ -30,10 +31,22 @@ class CustomAdapter(
             viewHolder = rowView.tag as ViewHolder
         }
 
+//        val item = getItem(position)
+//        viewHolder.textView1.text = item?.numberInDigit
+//        viewHolder.textView2.text = "R$${item?.numbersInText}"
+
         val item = getItem(position)
-        item?.imageId?.let { viewHolder.imageView.setImageResource(it) }
-        viewHolder.textView1.text = item?.numberInDigit
-        viewHolder.textView2.text = item?.numbersInText
+        item?.let {
+            // Load the image using Glide
+            Glide.with(context)
+                .load(it.imageUrl)
+                .placeholder(R.drawable.ic_launcher_background) // Optional: a placeholder until the image loads
+                .error(R.drawable.ic_launcher_background)     // Optional: an error image if the load fails
+                .into(viewHolder.imageView)
+
+            viewHolder.textView1.text = it.numberInDigit
+            viewHolder.textView2.text = "R$${it.numbersInText}"
+        }
 
         return rowView
     }
