@@ -1,107 +1,149 @@
 package com.example.glem
 
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
+import android.Manifest
+import android.app.Activity
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
+import android.provider.MediaStore
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.Toast
-import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.ktx.Firebase
-import com.google.firebase.storage.ktx.storage
-import java.io.File
+import com.google.firebase.storage.FirebaseStorage
 
-class CadastrarCarros : MainActivity() {
+class CadastrarCarros : AppCompatActivity() {
+
+    private var selectedImageUri: Uri? = null
+    private lateinit var imageView: ImageView
+
+    companion object {
+        private const val REQUEST_CODE_PICK_IMAGE = 100
+        private const val PERMISSION_REQUEST_CODE = 101
+    }
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            selectImageFromGallery()
+        } else {
+            Toast.makeText(this, "Permission denied", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContentView(R.layout.activity_cadastrar_carros)
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
-        //private lateinit var text_show: TextView
+
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
 
-        // Inicializando elementos View
         val marca = findViewById<EditText>(R.id.inputMarca)
         val modelo = findViewById<EditText>(R.id.inputModelo)
         val ano = findViewById<EditText>(R.id.inputAno)
         val preco = findViewById<EditText>(R.id.inputPreco)
         val descricao = findViewById<EditText>(R.id.inputDescricao)
-        val imageView = findViewById<ImageView>(R.id.imageView)
+        imageView = findViewById(R.id.imageView)
 
-        // Criando a conexao com o bd do Firebase
-        val storage = Firebase.storage("gs://glem-android.appspot.com")
-        val storageRef = storage.reference
-        val imageRef = storageRef.child("images/AE86.jpg")
-        val localFile = File.createTempFile("tempImage", "jpg")
-
-        imageRef.getFile(localFile)
-            .addOnSuccessListener {
-                // Se conseguir baixar a imagem, transforma em bitmap, dimensiona e seta na view
-                val bitmap = BitmapFactory.decodeFile(localFile.absolutePath)
-                val scaledBitmap = Bitmap.createScaledBitmap(bitmap, 700, 500, true)
-                imageView.setImageBitmap(scaledBitmap)
+        val inputImageButton: Button = findViewById(R.id.inputImagem)
+        inputImageButton.setOnClickListener {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+                requestPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+            } else {
+                selectImageFromGallery()
             }
-            .addOnFailureListener {
-                // Executa se acontecer algum erro
-                Toast.makeText(applicationContext, "Erro ao carregar imagem", Toast.LENGTH_SHORT).show()
-            }
+        }
 
-        val add_button: Button = findViewById(R.id.button_add)
-        add_button.setOnClickListener {
-            // Pega o input do user
+        val addButton: Button = findViewById(R.id.button_add)
+        addButton.setOnClickListener {
             val marcaText = marca.text.toString()
             val modeloText = modelo.text.toString()
             val anoText = ano.text.toString()
             val precoText = preco.text.toString()
             val descricaoText = descricao.text.toString()
 
-            // Insere no bd se os campos estiverem preenchidos
-            if(marcaText.isNotBlank() && modeloText.isNotBlank() && anoText.isNotBlank() && precoText.isNotBlank() && descricaoText.isNotBlank()) {
-                addDataToFirestore(marcaText, modeloText, anoText, precoText, descricaoText)
+            if (selectedImageUri != null &&
+                marcaText.isNotBlank() &&
+                modeloText.isNotBlank() &&
+                anoText.isNotBlank() &&
+                precoText.isNotBlank() &&
+                descricaoText.isNotBlank()) {
 
-                marca.setText("")
-                modelo.setText("")
-                ano.setText("")
-                preco.setText("")
-                descricao.setText("")
-            }
-            else{
-                Toast.makeText(applicationContext, "Digite todos os dados", Toast.LENGTH_LONG).show()
+                uploadImageToFirebase(marcaText, modeloText, anoText, precoText, descricaoText)
+            } else {
+                Toast.makeText(applicationContext, "Preencha todos os campos e selecione uma imagem", Toast.LENGTH_LONG).show()
             }
         }
-
     }
 
-    fun addDataToFirestore(
+    private fun selectImageFromGallery() {
+        val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+        startActivityForResult(intent, REQUEST_CODE_PICK_IMAGE)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQUEST_CODE_PICK_IMAGE && resultCode == Activity.RESULT_OK) {
+            data?.data?.let { uri ->
+                selectedImageUri = uri
+                imageView.setImageURI(uri)
+            }
+        }
+    }
+
+    private fun uploadImageToFirebase(marca: String, modelo: String, ano: String, preco: String, descricao: String) {
+        val storage = FirebaseStorage.getInstance()
+        val storageRef = storage.reference
+        val imageRef = storageRef.child("images/${System.currentTimeMillis()}.jpg")
+
+        selectedImageUri?.let {
+            imageRef.putFile(it)
+                .addOnSuccessListener { taskSnapshot ->
+                    imageRef.downloadUrl.addOnSuccessListener { uri ->
+                        val imageUrl = uri.toString()
+                        addDataToFirestore(marca, modelo, ano, preco, descricao, imageUrl)
+                    }
+                }
+                .addOnFailureListener {
+                    Toast.makeText(applicationContext, "Erro ao carregar imagem", Toast.LENGTH_SHORT).show()
+                }
+        }
+    }
+
+    private fun addDataToFirestore(
         marca: String,
         modelo: String,
         ano: String,
-        precoText: String,
-        descricaoText: String
+        preco: String,
+        descricao: String,
+        imageUrl: String
     ) {
-
-        // Cria uma referencia ao Firestore
         val db = FirebaseFirestore.getInstance()
-
-        // Cria um novo documento na collection de carros
         val carrosCollection = db.collection("carros")
         val newCarDoc = carrosCollection.document()
 
-        // Adiciona dados no documento
         val data = hashMapOf(
             "marca" to marca,
             "modelo" to modelo,
-            "ano" to ano
+            "ano" to ano,
+            "preco" to preco,
+            "descricao" to descricao,
+            "imagem" to imageUrl
         )
 
         newCarDoc.set(data)

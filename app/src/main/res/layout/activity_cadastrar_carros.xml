@@ -101,7 +101,7 @@
         android:text="Upload Imagem"
         app:layout_constraintTop_toBottomOf="@id/inputDescricao"
         app:layout_constraintStart_toEndOf="@id/button_add"
-        app:layout_constraintEnd_toStartOf="@id/inputImagem"/>
+        app:layout_constraintEnd_toEndOf="parent"/>
 
     <ImageView
         android:id="@+id/imageView"
