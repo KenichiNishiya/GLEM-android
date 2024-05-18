@@ -5,52 +5,45 @@ import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 
 class CadastrarCarros : AppCompatActivity() {
 
-    private var selectedImageUri: Uri? = null
+    private lateinit var selectedImageUri: Uri
     private lateinit var imageView: ImageView
 
     companion object {
         private const val REQUEST_CODE_PICK_IMAGE = 100
         private const val PERMISSION_REQUEST_CODE = 101
     }
-    private val requestPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (isGranted) {
-            selectImageFromGallery()
-        } else {
-            Toast.makeText(this, "Permission denied", Toast.LENGTH_SHORT).show()
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_cadastrar_carros)
 
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
-
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.setDisplayShowHomeEnabled(true)
+        supportActionBar?.title = ""
+        // Set status bar color
+        window.statusBarColor = ContextCompat.getColor(this, R.color.colorPrimaryDark)
+
+        toolbar.setNavigationOnClickListener {
+            onBackPressed()
+        }
 
         val marca = findViewById<EditText>(R.id.inputMarca)
         val modelo = findViewById<EditText>(R.id.inputModelo)
@@ -61,11 +54,20 @@ class CadastrarCarros : AppCompatActivity() {
 
         val inputImageButton: Button = findViewById(R.id.inputImagem)
         inputImageButton.setOnClickListener {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED) {
-                requestPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES)
+                    != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_MEDIA_IMAGES), PERMISSION_REQUEST_CODE)
+                } else {
+                    selectImageFromGallery()
+                }
             } else {
-                selectImageFromGallery()
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
+                    != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE), PERMISSION_REQUEST_CODE)
+                } else {
+                    selectImageFromGallery()
+                }
             }
         }
 
@@ -77,14 +79,24 @@ class CadastrarCarros : AppCompatActivity() {
             val precoText = preco.text.toString()
             val descricaoText = descricao.text.toString()
 
-            if (selectedImageUri != null &&
+            if (this::selectedImageUri.isInitialized &&
                 marcaText.isNotBlank() &&
                 modeloText.isNotBlank() &&
                 anoText.isNotBlank() &&
                 precoText.isNotBlank() &&
                 descricaoText.isNotBlank()) {
-
                 uploadImageToFirebase(marcaText, modeloText, anoText, precoText, descricaoText)
+
+                // Reset all fields and the ImageView to default state
+                marca.setText("")
+                modelo.setText("")
+                ano.setText("")
+                preco.setText("")
+                descricao.setText("")
+                imageView.setImageURI(null) // Remove image from ImageView
+                // Ensure that the ImageView is blank or transparent
+                imageView.setImageResource(android.R.color.transparent)
+                selectedImageUri = Uri.EMPTY // Reset the selectedImageUri to avoid false positives
             } else {
                 Toast.makeText(applicationContext, "Preencha todos os campos e selecione uma imagem", Toast.LENGTH_LONG).show()
             }
@@ -111,18 +123,16 @@ class CadastrarCarros : AppCompatActivity() {
         val storageRef = storage.reference
         val imageRef = storageRef.child("images/${System.currentTimeMillis()}.jpg")
 
-        selectedImageUri?.let {
-            imageRef.putFile(it)
-                .addOnSuccessListener { taskSnapshot ->
-                    imageRef.downloadUrl.addOnSuccessListener { uri ->
-                        val imageUrl = uri.toString()
-                        addDataToFirestore(marca, modelo, ano, preco, descricao, imageUrl)
-                    }
+        imageRef.putFile(selectedImageUri)
+            .addOnSuccessListener { taskSnapshot ->
+                imageRef.downloadUrl.addOnSuccessListener { uri ->
+                    val imageUrl = uri.toString()
+                    addDataToFirestore(marca, modelo, ano, preco, descricao, imageUrl)
                 }
-                .addOnFailureListener {
-                    Toast.makeText(applicationContext, "Erro ao carregar imagem", Toast.LENGTH_SHORT).show()
-                }
-        }
+            }
+            .addOnFailureListener {
+                Toast.makeText(applicationContext, "Erro ao carregar imagem", Toast.LENGTH_SHORT).show()
+            }
     }
 
     private fun addDataToFirestore(
@@ -153,5 +163,20 @@ class CadastrarCarros : AppCompatActivity() {
             .addOnFailureListener { e ->
                 Toast.makeText(applicationContext, "Erro ao inserir o documento", Toast.LENGTH_SHORT).show()
             }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                selectImageFromGallery()
+            } else {
+                Toast.makeText(this, "Permission denied to read external storage", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 }

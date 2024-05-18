@@ -22,18 +22,14 @@ class CustomAdapter(
             rowView = inflater.inflate(R.layout.list_item, parent, false)
             viewHolder = ViewHolder(
                 rowView.findViewById(R.id.imageView),
-                rowView.findViewById(R.id.textView1),
-                rowView.findViewById(R.id.textView2)
+                rowView.findViewById(R.id.textInfo),
+                rowView.findViewById(R.id.textPreco)
             )
             rowView.tag = viewHolder
         } else {
             rowView = convertView
             viewHolder = rowView.tag as ViewHolder
         }
-
-//        val item = getItem(position)
-//        viewHolder.textView1.text = item?.numberInDigit
-//        viewHolder.textView2.text = "R$${item?.numbersInText}"
 
         val item = getItem(position)
         item?.let {
@@ -44,8 +40,8 @@ class CustomAdapter(
                 .error(R.drawable.ic_launcher_background)     // Optional: an error image if the load fails
                 .into(viewHolder.imageView)
 
-            viewHolder.textView1.text = it.numberInDigit
-            viewHolder.textView2.text = "R$${it.numbersInText}"
+            viewHolder.textMarcaModelo.text = "${it.marca} ${it.modelo}"
+            viewHolder.textPreco.text = "R$${it.preco}"
         }
 
         return rowView
@@ -53,7 +49,7 @@ class CustomAdapter(
 
     private class ViewHolder(
         val imageView: ImageView,
-        val textView1: TextView,
-        val textView2: TextView
+        val textMarcaModelo: TextView,
+        val textPreco: TextView
     )
 }

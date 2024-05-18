@@ -1,5 +1,8 @@
 data class ListItem(
-    val imageUrl: String,     // Resource ID for the image
-    val numberInDigit: String, // Content for textView1
-    val numbersInText: String  // Content for textView2
+    val imageUrl: String,
+    val marca: String,
+    val modelo: String,
+    val ano: String,
+    val preco: String,
+    val descricao: String
 )
