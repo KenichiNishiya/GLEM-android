@@ -16,6 +16,9 @@
         android:theme="@style/Theme.GLEM"
         tools:targetApi="31">
         <activity
+            android:name=".LoginActivity"
+            android:exported="false" />
+        <activity
             android:name=".DetalhesCarros"
             android:exported="false" />
         <activity

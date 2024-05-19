@@ -4,6 +4,8 @@ import android.Manifest
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -16,17 +18,25 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.bumptech.glide.Glide
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
+import java.io.ByteArrayOutputStream
+import java.io.InputStream
 
 class CadastrarCarros : AppCompatActivity() {
 
     private lateinit var selectedImageUri: Uri
     private lateinit var imageView: ImageView
+    private var isEditMode = false
+    private var carId: String? = null
+    private var originalImageUrl: String? = null
+    private var isImageSelected = false
 
     companion object {
         private const val REQUEST_CODE_PICK_IMAGE = 100
         private const val PERMISSION_REQUEST_CODE = 101
+        private const val MAX_IMAGE_SIZE = 1024 // Max size in pixels for width/height
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -79,13 +89,20 @@ class CadastrarCarros : AppCompatActivity() {
             val precoText = preco.text.toString()
             val descricaoText = descricao.text.toString()
 
-            if (this::selectedImageUri.isInitialized &&
-                marcaText.isNotBlank() &&
+            if (marcaText.isNotBlank() &&
                 modeloText.isNotBlank() &&
                 anoText.isNotBlank() &&
                 precoText.isNotBlank() &&
                 descricaoText.isNotBlank()) {
-                uploadImageToFirebase(marcaText, modeloText, anoText, precoText, descricaoText)
+                if (isEditMode) {
+                    updateCarInFirestore(marcaText, modeloText, anoText, precoText, descricaoText)
+                } else {
+                    if (isImageSelected) {
+                        uploadImageToFirebase(marcaText, modeloText, anoText, precoText, descricaoText)
+                    } else {
+                        Toast.makeText(applicationContext, "Selecione uma imagem", Toast.LENGTH_LONG).show()
+                    }
+                }
 
                 // Reset all fields and the ImageView to default state
                 marca.setText("")
@@ -97,9 +114,25 @@ class CadastrarCarros : AppCompatActivity() {
                 // Ensure that the ImageView is blank or transparent
                 imageView.setImageResource(android.R.color.transparent)
                 selectedImageUri = Uri.EMPTY // Reset the selectedImageUri to avoid false positives
+                isImageSelected = false // Reset the image selection state
             } else {
-                Toast.makeText(applicationContext, "Preencha todos os campos e selecione uma imagem", Toast.LENGTH_LONG).show()
+                Toast.makeText(applicationContext, "Preencha todos os campos", Toast.LENGTH_LONG).show()
             }
+        }
+
+        // Check if in edit mode and pre-fill fields
+        isEditMode = intent.getBooleanExtra("isEditMode", false)
+        if (isEditMode) {
+            carId = intent.getStringExtra("carId")
+            marca.setText(intent.getStringExtra("marca"))
+            modelo.setText(intent.getStringExtra("modelo"))
+            ano.setText(intent.getStringExtra("ano"))
+            preco.setText(intent.getStringExtra("preco"))
+            descricao.setText(intent.getStringExtra("descricao"))
+            originalImageUrl = intent.getStringExtra("imageUrl")
+
+            // Load the existing image
+            Glide.with(this).load(originalImageUrl).into(imageView)
         }
     }
 
@@ -113,9 +146,29 @@ class CadastrarCarros : AppCompatActivity() {
         if (requestCode == REQUEST_CODE_PICK_IMAGE && resultCode == Activity.RESULT_OK) {
             data?.data?.let { uri ->
                 selectedImageUri = uri
-                imageView.setImageURI(uri)
+                isImageSelected = true // Set the image selection state to true
+                // Resize and display the image using Glide
+                Glide.with(this)
+                    .load(uri)
+                    .override(MAX_IMAGE_SIZE, MAX_IMAGE_SIZE)
+                    .into(imageView)
             }
         }
+    }
+
+    private fun resizeImage(uri: Uri): ByteArray {
+        val inputStream: InputStream? = contentResolver.openInputStream(uri)
+        val originalBitmap = BitmapFactory.decodeStream(inputStream)
+        inputStream?.close()
+
+        val aspectRatio = originalBitmap.width.toFloat() / originalBitmap.height.toFloat()
+        val width = if (originalBitmap.width > originalBitmap.height) MAX_IMAGE_SIZE else (MAX_IMAGE_SIZE * aspectRatio).toInt()
+        val height = if (originalBitmap.height > originalBitmap.width) MAX_IMAGE_SIZE else (MAX_IMAGE_SIZE / aspectRatio).toInt()
+
+        val resizedBitmap = Bitmap.createScaledBitmap(originalBitmap, width, height, true)
+        val byteArrayOutputStream = ByteArrayOutputStream()
+        resizedBitmap.compress(Bitmap.CompressFormat.JPEG, 80, byteArrayOutputStream)
+        return byteArrayOutputStream.toByteArray()
     }
 
     private fun uploadImageToFirebase(marca: String, modelo: String, ano: String, preco: String, descricao: String) {
@@ -123,16 +176,68 @@ class CadastrarCarros : AppCompatActivity() {
         val storageRef = storage.reference
         val imageRef = storageRef.child("images/${System.currentTimeMillis()}.jpg")
 
-        imageRef.putFile(selectedImageUri)
-            .addOnSuccessListener { taskSnapshot ->
+        val resizedImageBytes = resizeImage(selectedImageUri)
+        val uploadTask = imageRef.putBytes(resizedImageBytes)
+
+        uploadTask.addOnSuccessListener { taskSnapshot ->
+            imageRef.downloadUrl.addOnSuccessListener { uri ->
+                val imageUrl = uri.toString()
+                addDataToFirestore(marca, modelo, ano, preco, descricao, imageUrl)
+            }
+        }.addOnFailureListener {
+            Toast.makeText(applicationContext, "Erro ao carregar imagem", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun updateCarInFirestore(marca: String, modelo: String, ano: String, preco: String, descricao: String) {
+        val db = FirebaseFirestore.getInstance()
+        val carDoc = db.collection("carros").document(carId!!)
+
+        val data = hashMapOf(
+            "marca" to marca,
+            "modelo" to modelo,
+            "ano" to ano,
+            "preco" to preco,
+            "descricao" to descricao,
+            "imagem" to originalImageUrl
+        )
+
+        // If a new image is selected, upload it and update the image URL
+        if (isImageSelected) {
+            val storage = FirebaseStorage.getInstance()
+            val storageRef = storage.reference
+            val imageRef = storageRef.child("images/${System.currentTimeMillis()}.jpg")
+
+            val resizedImageBytes = resizeImage(selectedImageUri)
+            val uploadTask = imageRef.putBytes(resizedImageBytes)
+
+            uploadTask.addOnSuccessListener { taskSnapshot ->
                 imageRef.downloadUrl.addOnSuccessListener { uri ->
                     val imageUrl = uri.toString()
-                    addDataToFirestore(marca, modelo, ano, preco, descricao, imageUrl)
+                    data["imagem"] = imageUrl
+                    carDoc.set(data)
+                        .addOnSuccessListener {
+                            Toast.makeText(applicationContext, "Carro atualizado com sucesso", Toast.LENGTH_SHORT).show()
+                            startActivity(Intent(this, MainActivity::class.java))
+                        }
+                        .addOnFailureListener {
+                            Toast.makeText(applicationContext, "Erro ao atualizar o carro", Toast.LENGTH_SHORT).show()
+                        }
                 }
+            }.addOnFailureListener {
+                Toast.makeText(applicationContext, "Erro ao carregar nova imagem", Toast.LENGTH_SHORT).show()
             }
-            .addOnFailureListener {
-                Toast.makeText(applicationContext, "Erro ao carregar imagem", Toast.LENGTH_SHORT).show()
-            }
+        } else {
+            // No new image selected, just update the Firestore document
+            carDoc.set(data)
+                .addOnSuccessListener {
+                    Toast.makeText(applicationContext, "Carro atualizado com sucesso", Toast.LENGTH_SHORT).show()
+                    startActivity(Intent(this, MainActivity::class.java))
+                }
+                .addOnFailureListener {
+                    Toast.makeText(applicationContext, "Erro ao atualizar o carro", Toast.LENGTH_SHORT).show()
+                }
+        }
     }
 
     private fun addDataToFirestore(

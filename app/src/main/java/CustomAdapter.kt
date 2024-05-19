@@ -6,6 +6,7 @@ import android.widget.ArrayAdapter
 import android.widget.ImageView
 import android.widget.TextView
 import com.bumptech.glide.Glide
+import com.example.glem.ListItem
 import com.example.glem.R
 
 class CustomAdapter(

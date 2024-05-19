@@ -1,8 +1,8 @@
 package com.example.glem
 
 import CustomAdapter
-import ListItem
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.view.Menu
@@ -28,12 +28,14 @@ open class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContentView(R.layout.activity_main)
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
+
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
         supportActionBar?.title = ""
@@ -62,6 +64,7 @@ open class MainActivity : AppCompatActivity() {
                     putExtra("ano", item.ano)
                     putExtra("preco", item.preco)
                     putExtra("descricao", item.descricao)
+                    putExtra("carId", item.carId) // Make sure carId is passed
                 }
                 startActivity(intent)
             } else {
@@ -78,6 +81,7 @@ open class MainActivity : AppCompatActivity() {
             .addOnSuccessListener { result ->
                 items.clear() // Clear existing items
                 for (document in result) {
+                    val carId = document.id // Get document ID
                     val imageUrl = document.getString("imagem") ?: "default_image_url"
                     val marca = document.getString("marca") ?: "Unknown"
                     val modelo = document.getString("modelo") ?: "Unknown"
@@ -87,7 +91,7 @@ open class MainActivity : AppCompatActivity() {
                     val preco = document.get("preco")?.toString() ?: "Unknown"
                     val descricao = document.getString("descricao") ?: "No description"
 
-                    items.add(ListItem(imageUrl, marca, modelo, ano, preco, descricao))
+                    items.add(ListItem(carId, imageUrl, marca, modelo, ano, preco, descricao))
                 }
                 adapter.notifyDataSetChanged() // Notify the adapter of the data change
                 swipeRefreshLayout.isRefreshing = false // Hide the refresh indicator
@@ -103,20 +107,45 @@ open class MainActivity : AppCompatActivity() {
         return true
     }
 
+    override fun onPrepareOptionsMenu(menu: Menu?): Boolean {
+        val sharedPref = getSharedPreferences("LoginPrefs", Context.MODE_PRIVATE)
+        val isLoggedIn = sharedPref.getBoolean("isLoggedIn", false)
+        menu?.findItem(R.id.func2)?.isVisible = isLoggedIn
+        return super.onPrepareOptionsMenu(menu)
+    }
+
     override fun onOptionsItemSelected(item: MenuItem) = when (item.itemId) {
-        R.id.func1 -> {
-            startActivity(Intent(this, MainActivity::class.java))
-            true
-        }
         R.id.func2 -> {
             startActivityForResult(Intent(this, CadastrarCarros::class.java), REQUEST_CODE_ADD_CAR)
+            true
+        }
+        R.id.func3 -> {
+            startActivityForResult(Intent(this, LoginActivity::class.java), REQUEST_CODE_ADD_CAR)
             true
         }
         else -> {
             super.onOptionsItemSelected(item)
         }
     }
-
+//    override fun onStop() {
+//        super.onStop()
+//        // Clear login state when the app is stopped
+//        val sharedPref = getSharedPreferences("LoginPrefs", Context.MODE_PRIVATE)
+//        with(sharedPref.edit()) {
+//            putBoolean("isLoggedIn", false)
+//            apply()
+//        }
+//    }
+//
+//    override fun onDestroy() {
+//        super.onDestroy()
+//        // Clear login state when the app is closed
+//        val sharedPref = getSharedPreferences("LoginPrefs", Context.MODE_PRIVATE)
+//        with(sharedPref.edit()) {
+//            putBoolean("isLoggedIn", false)
+//            apply()
+//        }
+//    }
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == REQUEST_CODE_ADD_CAR && resultCode == Activity.RESULT_OK) {

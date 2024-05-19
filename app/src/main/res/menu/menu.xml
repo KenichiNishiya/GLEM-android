@@ -3,10 +3,9 @@
     xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
-        android:id="@+id/func1"
-        android:title="Home" />
-    <item
         android:id="@+id/func2"
-        android:title="Adicionar carros" />
-
+        android:title="Adicionar Carros" />
+    <item
+        android:id="@+id/func3"
+        android:title="Login" />
 </menu>
