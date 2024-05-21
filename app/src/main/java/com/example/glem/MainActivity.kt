@@ -24,7 +24,7 @@ open class MainActivity : AppCompatActivity() {
     lateinit var listView: ListView
     lateinit var adapter: CustomAdapter
     lateinit var swipeRefreshLayout: SwipeRefreshLayout
-    val items = mutableListOf<ListItem>() // Initially empty
+    val items = mutableListOf<ListItem>() // Vazio inicialmente
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,10 +36,10 @@ open class MainActivity : AppCompatActivity() {
             insets
         }
 
+
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
-        supportActionBar?.title = ""
-        // Set status bar color
+        supportActionBar?.title = "" // Remove o titulo "GLEM"
         window.statusBarColor = ContextCompat.getColor(this, R.color.colorPrimaryDark)
 
         swipeRefreshLayout = findViewById(R.id.swipe_refresh_layout)
@@ -53,22 +53,24 @@ open class MainActivity : AppCompatActivity() {
 
         retrieveDataFromFirestore()
 
-        // Setting up the item click listener
+        // Quando clica em um item do list view
         listView.setOnItemClickListener { parent, view, position, id ->
+            // Pega o item do adapter na position clicada
             val item = adapter.getItem(position)
             if (item != null) {
-                val intent = Intent(this, DetalhesCarros::class.java).apply {
-                    putExtra("imageUrl", item.imageUrl)
+                // Cria um intent com uma refencia a classe de DetalhesCarros
+                val intent = Intent(this, DetalhesCarros::class.java).apply {// configura e retorna o intent
+                    putExtra("imageUrl", item.imageUrl) // Adiciona dados extras para serem passados
                     putExtra("marca", item.marca)
                     putExtra("modelo", item.modelo)
                     putExtra("ano", item.ano)
                     putExtra("preco", item.preco)
                     putExtra("descricao", item.descricao)
-                    putExtra("carId", item.carId) // Make sure carId is passed
+                    putExtra("carId", item.carId)
                 }
                 startActivity(intent)
             } else {
-                Toast.makeText(this, "Error: Item not found", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Item não encontrado", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -79,77 +81,54 @@ open class MainActivity : AppCompatActivity() {
 
         carrosCollection.get()
             .addOnSuccessListener { result ->
-                items.clear() // Clear existing items
+                items.clear() // Limpa os items ja existentes
                 for (document in result) {
                     val carId = document.id // Get document ID
-                    val imageUrl = document.getString("imagem") ?: "default_image_url"
-                    val marca = document.getString("marca") ?: "Unknown"
-                    val modelo = document.getString("modelo") ?: "Unknown"
+                    val imageUrl = document.getString("imagem") ?: "https://firebasestorage.googleapis.com/v0/b/glem-android.appspot.com/o/images%2F1716332048577.jpg?alt=media&token=0ee5239e-a8a9-4a31-9b3c-ed216f0c7396"
+                    val marca = document.getString("marca") ?: "Não informada"
+                    val modelo = document.getString("modelo") ?: "Não informado"
                     val ano = document.get("ano")?.let {
-                        if (it is Long) it.toString() else it as? String ?: "Unknown"
-                    } ?: "Unknown"
-                    val preco = document.get("preco")?.toString() ?: "Unknown"
-                    val descricao = document.getString("descricao") ?: "No description"
+                        if (it is Long) it.toString() else it as? String
+                    } ?: "Não informado"
+                    val preco = document.get("preco")?.toString() ?: "Não informado"
+                    val descricao = document.getString("descricao") ?: "Não informada"
 
                     items.add(ListItem(carId, imageUrl, marca, modelo, ano, preco, descricao))
                 }
-                adapter.notifyDataSetChanged() // Notify the adapter of the data change
-                swipeRefreshLayout.isRefreshing = false // Hide the refresh indicator
+                adapter.notifyDataSetChanged() // Notifica o adapter para ele atualizar a listview
+                swipeRefreshLayout.isRefreshing = false
             }
             .addOnFailureListener {
                 Toast.makeText(applicationContext, "Error loading data", Toast.LENGTH_SHORT).show()
-                swipeRefreshLayout.isRefreshing = false // Hide the refresh indicator
+                swipeRefreshLayout.isRefreshing = false
             }
     }
 
+    // Infla o menu com os items
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.menu, menu)
         return true
     }
 
+    // Verifica se esta logado para deixar o botao de adicionar carros visivel
     override fun onPrepareOptionsMenu(menu: Menu?): Boolean {
         val sharedPref = getSharedPreferences("LoginPrefs", Context.MODE_PRIVATE)
         val isLoggedIn = sharedPref.getBoolean("isLoggedIn", false)
-        menu?.findItem(R.id.func2)?.isVisible = isLoggedIn
+        menu?.findItem(R.id.inserirCarros)?.isVisible = isLoggedIn
         return super.onPrepareOptionsMenu(menu)
     }
 
     override fun onOptionsItemSelected(item: MenuItem) = when (item.itemId) {
-        R.id.func2 -> {
-            startActivityForResult(Intent(this, CadastrarCarros::class.java), REQUEST_CODE_ADD_CAR)
+        R.id.inserirCarros -> {
+            startActivity(Intent(this, CadastrarCarros::class.java))
             true
         }
-        R.id.func3 -> {
-            startActivityForResult(Intent(this, LoginActivity::class.java), REQUEST_CODE_ADD_CAR)
+        R.id.login -> {
+            startActivity(Intent(this, LoginActivity::class.java))
             true
         }
         else -> {
             super.onOptionsItemSelected(item)
-        }
-    }
-//    override fun onStop() {
-//        super.onStop()
-//        // Clear login state when the app is stopped
-//        val sharedPref = getSharedPreferences("LoginPrefs", Context.MODE_PRIVATE)
-//        with(sharedPref.edit()) {
-//            putBoolean("isLoggedIn", false)
-//            apply()
-//        }
-//    }
-//
-//    override fun onDestroy() {
-//        super.onDestroy()
-//        // Clear login state when the app is closed
-//        val sharedPref = getSharedPreferences("LoginPrefs", Context.MODE_PRIVATE)
-//        with(sharedPref.edit()) {
-//            putBoolean("isLoggedIn", false)
-//            apply()
-//        }
-//    }
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == REQUEST_CODE_ADD_CAR && resultCode == Activity.RESULT_OK) {
-            retrieveDataFromFirestore() // Refresh data
         }
     }
 }
