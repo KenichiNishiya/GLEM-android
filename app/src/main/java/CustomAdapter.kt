@@ -34,11 +34,10 @@ class CustomAdapter(
 
         val item = getItem(position)
         item?.let {
-            // Load the image using Glide
             Glide.with(context)
                 .load(it.imageUrl)
-                .placeholder(R.drawable.ic_launcher_background) // Optional: a placeholder until the image loads
-                .error(R.drawable.ic_launcher_background)     // Optional: an error image if the load fails
+                .placeholder(R.drawable.ic_launcher_background)
+                .error(R.drawable.ic_launcher_background)
                 .into(viewHolder.imageView)
 
             viewHolder.textMarcaModelo.text = "${it.marca} ${it.modelo}"

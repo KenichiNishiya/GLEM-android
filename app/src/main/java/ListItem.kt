@@ -1,5 +1,5 @@
 package com.example.glem
-
+// Representa os dados de um carro
 data class ListItem(
     val carId: String,
     val imageUrl: String,
