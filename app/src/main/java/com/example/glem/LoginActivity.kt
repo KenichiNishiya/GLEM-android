@@ -53,11 +53,4 @@ class LoginActivity : AppCompatActivity() {
             }
         }
     }
-
-    override fun onBackPressed() {
-        // Redirect to MainActivity
-        val intent = Intent(this, MainActivity::class.java)
-        startActivity(intent)
-        finish()
-    }
 }

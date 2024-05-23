@@ -17,9 +17,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.firebase.firestore.FirebaseFirestore
 
-open class MainActivity : AppCompatActivity() {
-
-    private val REQUEST_CODE_ADD_CAR = 200
+class MainActivity : AppCompatActivity() {
 
     lateinit var listView: ListView
     lateinit var adapter: CustomAdapter
@@ -36,31 +34,30 @@ open class MainActivity : AppCompatActivity() {
             insets
         }
 
-
+        // Configuracao do toolbar
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
         supportActionBar?.title = "" // Remove o titulo "GLEM"
-        window.statusBarColor = ContextCompat.getColor(this, R.color.colorPrimaryDark)
+        window.statusBarColor = ContextCompat.getColor(this, R.color.colorPrimaryDark) // Muda cor
 
         swipeRefreshLayout = findViewById(R.id.swipe_refresh_layout)
         listView = findViewById(R.id.listView)
-        adapter = CustomAdapter(this, items)
-        listView.adapter = adapter
+        adapter = CustomAdapter(this, items) // Iniciliza o adapter
+        listView.adapter = adapter // Configura o adapter no listview
 
         swipeRefreshLayout.setOnRefreshListener {
-            retrieveDataFromFirestore()
+            retrieveDataFromFirestore() // Carrega os dados quando desliza pra baixo
         }
 
-        retrieveDataFromFirestore()
+        retrieveDataFromFirestore() // Carrega dados de inicio
 
         // Quando clica em um item do list view
         listView.setOnItemClickListener { parent, view, position, id ->
-            // Pega o item do adapter na position clicada
-            val item = adapter.getItem(position)
+            val item = adapter.getItem(position) // Pega o item do adapter na position clicada
             if (item != null) {
                 // Cria um intent com uma refencia a classe de DetalhesCarros
                 val intent = Intent(this, DetalhesCarros::class.java).apply {// configura e retorna o intent
-                    putExtra("imageUrl", item.imageUrl) // Adiciona dados extras para serem passados
+                    putExtra("imageUrl", item.imageUrl) // Adiciona dados extras para serem passados no intent
                     putExtra("marca", item.marca)
                     putExtra("modelo", item.modelo)
                     putExtra("ano", item.ano)
@@ -68,7 +65,7 @@ open class MainActivity : AppCompatActivity() {
                     putExtra("descricao", item.descricao)
                     putExtra("carId", item.carId)
                 }
-                startActivity(intent)
+                startActivity(intent) // Inicia a activity com os dados
             } else {
                 Toast.makeText(this, "Item não encontrado", Toast.LENGTH_SHORT).show()
             }
@@ -76,48 +73,47 @@ open class MainActivity : AppCompatActivity() {
     }
 
     fun retrieveDataFromFirestore() {
-        val db = FirebaseFirestore.getInstance()
+        val db = FirebaseFirestore.getInstance() // Instancia do Firestore
         val carrosCollection = db.collection("carros")
 
         carrosCollection.get()
             .addOnSuccessListener { result ->
                 items.clear() // Limpa os items ja existentes
                 for (document in result) {
-                    val carId = document.id // Get document ID
+                    val carId = document.id // Pega o id do documento
                     val imageUrl = document.getString("imagem") ?: "https://firebasestorage.googleapis.com/v0/b/glem-android.appspot.com/o/images%2F1716332048577.jpg?alt=media&token=0ee5239e-a8a9-4a31-9b3c-ed216f0c7396"
                     val marca = document.getString("marca") ?: "Não informada"
                     val modelo = document.getString("modelo") ?: "Não informado"
-                    val ano = document.get("ano")?.let {
-                        if (it is Long) it.toString() else it as? String
-                    } ?: "Não informado"
+                    val ano = document.get("ano")?.toString() ?: "Não informado"
                     val preco = document.get("preco")?.toString() ?: "Não informado"
                     val descricao = document.getString("descricao") ?: "Não informada"
 
                     items.add(ListItem(carId, imageUrl, marca, modelo, ano, preco, descricao))
                 }
                 adapter.notifyDataSetChanged() // Notifica o adapter para ele atualizar a listview
-                swipeRefreshLayout.isRefreshing = false
+                swipeRefreshLayout.isRefreshing = false // Nao atualiza sem essa linha
             }
             .addOnFailureListener {
                 Toast.makeText(applicationContext, "Error loading data", Toast.LENGTH_SHORT).show()
-                swipeRefreshLayout.isRefreshing = false
+                swipeRefreshLayout.isRefreshing = false // Nao atualiza sem essa linha
             }
     }
 
     // Infla o menu com os items
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
-        menuInflater.inflate(R.menu.menu, menu)
+        menuInflater.inflate(R.menu.menu, menu) // Pega o xml de menu com as opcoes
         return true
     }
 
     // Verifica se esta logado para deixar o botao de adicionar carros visivel
     override fun onPrepareOptionsMenu(menu: Menu?): Boolean {
-        val sharedPref = getSharedPreferences("LoginPrefs", Context.MODE_PRIVATE)
-        val isLoggedIn = sharedPref.getBoolean("isLoggedIn", false)
-        menu?.findItem(R.id.inserirCarros)?.isVisible = isLoggedIn
+        val sharedPref = getSharedPreferences("LoginPrefs", Context.MODE_PRIVATE) // Obtem as preferencias compartilhadas
+        val isLoggedIn = sharedPref.getBoolean("isLoggedIn", false) // Verifica se esta logado
+        menu?.findItem(R.id.inserirCarros)?.isVisible = isLoggedIn // Define a visibilidade do item de acordo com o estado de login
         return super.onPrepareOptionsMenu(menu)
     }
 
+    // Leva pra outras telas de acordo com a opcao do menu
     override fun onOptionsItemSelected(item: MenuItem) = when (item.itemId) {
         R.id.inserirCarros -> {
             startActivity(Intent(this, CadastrarCarros::class.java))
@@ -128,7 +124,7 @@ open class MainActivity : AppCompatActivity() {
             true
         }
         else -> {
-            super.onOptionsItemSelected(item)
+            super.onOptionsItemSelected(item)// Pra qualquer outra opcao, a superclasse cuida dela
         }
     }
 }
