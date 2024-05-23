@@ -22,7 +22,7 @@ class MainActivity : AppCompatActivity() {
     lateinit var listView: ListView
     lateinit var adapter: CustomAdapter
     lateinit var swipeRefreshLayout: SwipeRefreshLayout
-    val items = mutableListOf<ListItem>() // Vazio inicialmente
+    var items = mutableListOf<ListItem>() // Vazio inicialmente
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
